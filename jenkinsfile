@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/humera99/myapp.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t myapp:latest .'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'docker run --rm myapp:latest python -m unittest'
+            }
+        }
+
+        stage('Push Image to DockerHub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub-cred', url: 'https://index.docker.io/v1/']) {
+                    sh 'docker tag myapp:latest your-dockerhub-username/myapp:latest'
+                    sh 'docker push your-dockerhub-username/myapp:latest'
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f k8s-deployment.yaml'
+            }
+        }
+    }
+}
